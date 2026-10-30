@@ -46,6 +46,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1
 
 Then run **Reload** in Command Palette.
 
+## Packaging
+
+Store bundle (x64 + ARM64):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package-store.ps1
+```
+
+See [docs/STORE_SUBMISSION.md](docs/STORE_SUBMISSION.md) for the full submission steps.
+
 ## Icons
 
 `BookmarkSearch/Assets/Icon.light.svg` and `Icon.dark.svg` are the Command Palette icons (light and dark theme). The package PNGs are generated from `Icon.light.svg`:
@@ -53,3 +63,11 @@ Then run **Reload** in Command Palette.
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\render-icons.ps1
 ```
+
+## Privacy
+
+Bookmark Search works offline and collects no data. See [PRIVACY.md](PRIVACY.md).
+
+## License
+
+[MIT](LICENSE)

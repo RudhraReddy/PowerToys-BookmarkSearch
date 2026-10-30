@@ -138,7 +138,10 @@ Toolkit notes (package `Microsoft.CommandPalette.Extensions` 0.11.260520004):
 
 1. Set the `/` alias (Direct) in CmdPal settings and confirm `/` opens Bookmark Search.
 2. Verify live: Tab on folders (`TextToSuggest`), Enter on folders updates the search box, settings save and re-index.
-3. Packaging and submission, if pursued (Store certification typically up to three business days).
+3. Microsoft Store submission (chosen channel). Bundle builds with `scripts/package-store.ps1`; needs the Partner Center identity values and a public privacy policy URL. Steps in `docs/STORE_SUBMISSION.md`.
+4. WinGet later, if wanted: needs a trusted code-signing certificate.
+
+License: MIT.
 
 ## 8. Open Questions
 
