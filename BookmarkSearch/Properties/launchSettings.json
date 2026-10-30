@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "BookmarkSearch (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "BookmarkSearch (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -33,23 +33,27 @@ A PowerToys **Command Palette** extension that searches Google Chrome bookmarks 
 
 ### 3.1 Verified on the dev machine (2026-10-30)
 
-- **Chrome is not installed** on the dev machine (no `Google\Chrome\User Data` folder).
-- **Format is JSON**, not SQLite. Confirmed on two Chromium browsers:
+- Chrome: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Bookmarks` (found on a later check; the first check missed it).
+- **Format is JSON**, not SQLite. Confirmed on Chrome, Edge and Brave:
   - Edge: `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Bookmarks`. Roots: `bookmark_bar`, `other`, `synced`, plus an extra Edge-only `workspaces_v2`.
   - Brave: `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Default\Bookmarks`. Roots: `bookmark_bar`, `other`, `synced`.
 - The parser should read only the three known roots and ignore unknown ones like `workspaces_v2`.
-- Because settings take a list of file paths, Edge and Brave work with no extra code. Use them for local testing.
+- If the bookmark files setting is empty, the extension auto-detects every profile of Chrome, Edge and Brave (`BookmarkSources.Discover`).
+- The file is read with shared access into memory instead of copying it to a temp file. Same effect, no temp files.
+- Smoke test on the dev machine: 3 files, 140 bookmarks, 11 top-level folders.
 
 ## 4. User-Facing Behavior
 
 ### 4.1 Trigger and Query Syntax
-- Input starts with `/`. Anything not starting with `/` is not a bookmark query.
-- `/` alone shows top-level folders (tree mode) or all bookmarks (flat mode).
-- Trailing `/` browses folder contents (tree mode): `/anime/` shows contents of `anime`.
+- Typing `/` in Command Palette directly activates Bookmark Search, the same way built-in prefixes work (`??` web search, `>` run, `=` calculator, `$` settings).
+- CmdPal hard-codes default aliases only for built-in commands (`AliasManager._defaultAliases`). Extensions cannot register one, so the user sets it once: CmdPal settings > Extensions > Bookmark Search > Alias `/`, Direct on.
+- The alias points at the page's stable command id `com.rudhrareddy.bookmarksearch`.
+- Activation clears the box, so queries inside the page have no leading `/`. A leading `/` is still accepted.
+- Empty input shows top-level folders (tree mode) or all bookmarks (flat mode).
+- Trailing `/` browses folder contents (tree mode): `anime/` shows contents of `anime`.
 - Last segment is a search term matched against names.
-- Example tree query: `/anime/an1` opens the matching bookmark.
-- Example flat query: `/an1` finds every bookmark named like "an1", in any folder.
-- **Open question:** whether a single `/` is accepted as a trigger keyword in CmdPal. If not, use a word trigger (e.g. `bm`) with `/` as the path separator. Verify before finalizing the shortcut table.
+- Example tree query: `/` then `anime/an1`.
+- Example flat query: `/` then `an1` finds every bookmark named like "an1", in any folder.
 
 ### 4.2 Navigation Mode (global setting)
 - **Tree:** each `/` segment walks one folder level. Matching is per level.
@@ -71,10 +75,11 @@ A PowerToys **Command Palette** extension that searches Google Chrome bookmarks 
 - Full URL should be available on hover or in a details view.
 
 ### 4.5 Tab Completion (tree mode only)
-- One folder match: complete to full folder path with trailing `/`.
-- Several folder matches: complete to their common prefix. Second Tab cycles choices.
-- No folder matches: input unchanged.
-- Tab does nothing in flat mode.
+- CmdPal does not pass the Tab key to extensions. Instead, each folder item sets `ListItem.TextToSuggest` to `<path>/`, and the host's Tab accepts the suggestion for the selected item.
+- Enter on a folder also walks into it (replaces the search text with `<path>/`).
+- No common-prefix completion or Tab cycling; Up/Down picks the folder first.
+- Flat mode has no folder items, so nothing to complete.
+- **Not verified live yet:** that Tab accepts `TextToSuggest` and that setting `SearchText` from the extension updates the search box.
 
 ### 4.6 Ranking
 - Score: exact (3) > prefix (2) > substring (1). No match is excluded.
@@ -82,39 +87,39 @@ A PowerToys **Command Palette** extension that searches Google Chrome bookmarks 
 - Ties keep the source order (stable sort). The list should not reshuffle while typing.
 - Tree mode: **folders listed before bookmarks** so Tab completion stays predictable.
 
-### 4.7 Shortcut Prefixes (settings)
-- User-configurable table of prefix → action.
-- Planned examples:
-  - `@` → run the rest of the input in PowerShell
-  - `??` → web search with a URL template, `{query}` URL-encoded
-- Check longer prefixes before shorter ones (`??` before `?`).
-- Bookmark titles and URLs must never trigger a command.
+### 4.7 Opening Items
+- Bookmarks open in the default browser via `Process.Start` with `UseShellExecute = true`.
 
-### 4.8 Opening Items
-- Bookmarks and web searches open in the default browser via `Process.Start` with `UseShellExecute = true`.
-
-## 5. Code Layout (planned)
-
-The Core code and tests below were written in an earlier session but are **not in this repo yet**.
+## 5. Code Layout
 
 ```
-BookmarkNav/
-  Core/
-    BookmarkEntry.cs          record + UrlDisplay.Trim
-    ChromeBookmarkReader.cs   reads, copies, parses the Bookmarks JSON
-    QueryParser.cs            "/" input -> ParsedQuery (folders, term, trailing slash)
-    Matching.cs               Score(name, term)
-    BookmarkSearch.cs         Search(index, input, mode), Complete(input, mode, results)
-  Tests/
-    BookmarkSearchTests.cs    xUnit tests for root, trailing slash, full path, flat mode, Tab
-  UI/                         (not yet written) Command Palette page, settings page
+BookmarkSearch.sln
+BookmarkSearch/                     Command Palette extension (from the CmdPal template, PowerToys v0.102.3001)
+  BookmarkSearch.cs                 IExtension / COM entry (template)
+  BookmarkSearchCommandsProvider.cs top-level command, settings
+  Program.cs                        COM server host (template, do not change)
+  Helpers/SettingsManager.cs        navigation mode, bookmark files
+  Helpers/BookmarkStore.cs          loads files into the index, FileSystemWatcher re-index
+  Pages/BookmarkSearchPage.cs       DynamicListPage: search on every keystroke; stable Id for the "/" alias
+  Pages/ResultItems.cs              SearchResult -> ListItem
+  Commands/BrowseFolderCommand.cs   Enter on a folder walks into it
+BookmarkSearch.Core/                UI-independent logic (net10.0, AOT-safe)
+  BookmarkIndex.cs                  BookmarkEntry, BookmarkFolder, BookmarkIndex, UrlDisplay
+  ChromeBookmarkReader.cs           reads the Bookmarks JSON; BookmarkSources.Discover
+  BookmarkSearcher.cs               ParsedQuery, Matching, Search(index, input, mode)
+BookmarkSearch.Tests/               xUnit tests for Core
+scripts/deploy.ps1                  build + register the package without Visual Studio
 ```
 
 Key types:
 - `BookmarkEntry(Name, Url, FolderPath)`, with `FolderDisplay` and `DisplayUrl`.
 - `SearchResult(Kind, Title, Subtitle, Url, FolderPath)`. `Kind` is `Folder` or `Bookmark`.
 - `NavigationMode`: `Tree` | `Flat`.
-- `ParsedQuery(Folders, Term, TrailingSlash)`.
+- `ParsedQuery(Folders, Term)`. A trailing `/` simply gives an empty term.
+
+Toolkit notes (package `Microsoft.CommandPalette.Extensions` 0.11.260520004):
+- `StringListSetting` / `FilePathListSetting` / `KeyValueListSetting` exist in newer PowerToys source but **not** in this package, so the bookmark files setting is a multi-line `TextSetting`.
+- There is no API for an extension to set a default alias (see 4.1).
 
 ## 6. Work Completed
 
@@ -123,28 +128,22 @@ Key types:
 3. Wrote `ChromeBookmarkReader` and `BookmarkEntry` (parser, root-name stripping, temp-copy read).
 4. Wrote `QueryParser`, `Matching`, and `BookmarkSearch` (search and Tab completion).
 5. Wrote xUnit tests for core search behavior.
-6. Verified the bookmark file format locally (JSON) using Edge and Brave. See 3.1.
+6. Verified the bookmark file format locally (JSON) on Chrome, Edge and Brave. See 3.1.
+7. Generated the extension project from the CmdPal template; it builds with the .NET 10 SDK and Windows SDK 26100.
+8. Rewrote Core (index, reader, search) and 15 xUnit tests; all pass.
+9. Wrote the list page, settings and FileSystemWatcher re-indexing. Deployed and working in Command Palette.
+10. Dropped the shortcut-prefix feature: `@` and `??` in the original notes were examples of CmdPal's own prefixes, not features to build.
 
 ## 7. Next Steps
 
-1. ~~Verify the local Chrome `Bookmarks` path and file format on the dev machine.~~ Done (see 3.1).
-2. Create the Command Palette project from the template and confirm it builds and loads.
-3. Add the Core code and xUnit tests to this repo and run them.
-4. Write the Command Palette list page: call `BookmarkSearch.Search` on each keystroke, map `SearchResult` to list items, handle Tab via `Complete`, handle Enter via `Url` or `FolderPath`.
-5. Write the settings page: navigation mode, bookmark file paths, shortcut prefixes.
-6. Add `FileSystemWatcher` re-indexing.
-7. Add shortcut prefix handling (`@` PowerShell, `??` web search).
-8. Test with real profiles plus a fake file containing duplicate names, nested folders, and both `www.` and non-`www.` URLs.
-9. Decide the trigger keyword (`/` vs word trigger).
-10. Packaging and submission, if pursued (Store certification typically up to three business days; PowerToys Run plugin distribution is separate and not verified for CmdPal).
+1. Set the `/` alias (Direct) in CmdPal settings and confirm `/` opens Bookmark Search.
+2. Verify live: Tab on folders (`TextToSuggest`), Enter on folders updates the search box, settings save and re-index.
+3. Packaging and submission, if pursued (Store certification typically up to three business days).
 
 ## 8. Open Questions
 
-- Is `/` allowed as a CmdPal trigger keyword? (Decides query entry point.)
 - Should flat mode narrow by typed folder segments, or always ignore them? (Currently: ignore.)
-- Should non-web URLs (`javascript:`, `chrome://`) be excluded at parse time or in the UI? (Currently: stored, filter in UI.)
-- Edge and Brave support: officially support and auto-detect in the first release, or later? (They already work by adding their file path in settings.)
-- Shortcut table defaults beyond `@` and `??`?
+- Should non-web URLs (`javascript:`, `chrome://`) be excluded at parse time or in the UI? (Currently: stored; `javascript:` filtered in the UI.)
 
 ## 9. Working Rules Agreed
 
