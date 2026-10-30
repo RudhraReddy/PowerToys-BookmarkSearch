@@ -26,7 +26,7 @@ internal sealed partial class BookmarkSearchPage : DynamicListPage
         _store = store;
 
         Id = CommandId;
-        Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
+        Icon = ResultItems.AppIcon;
         Title = "Bookmark Search";
         Name = "Open";
         PlaceholderText = "Search bookmarks, or folder/name";

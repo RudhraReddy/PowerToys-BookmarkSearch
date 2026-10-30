@@ -16,7 +16,7 @@ public partial class BookmarkSearchCommandsProvider : CommandProvider
     public BookmarkSearchCommandsProvider()
     {
         DisplayName = "Bookmark Search";
-        Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
+        Icon = ResultItems.AppIcon;
 
         _store.SetFiles(_settingsManager.BookmarkFiles);
         _settingsManager.Changed += (_, _) => _store.SetFiles(_settingsManager.BookmarkFiles);

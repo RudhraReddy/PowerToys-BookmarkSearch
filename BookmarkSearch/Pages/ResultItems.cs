@@ -9,6 +9,8 @@ namespace BookmarkSearch;
 /// </summary>
 internal static class ResultItems
 {
+    public static readonly IconInfo AppIcon = IconHelpers.FromRelativePaths("Assets\\Icon.light.svg", "Assets\\Icon.dark.svg");
+
     public static readonly IconInfo FolderIcon = new("");
     public static readonly IconInfo BookmarkIcon = new("");
 

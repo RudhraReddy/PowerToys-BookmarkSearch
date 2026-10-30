@@ -1,0 +1,20 @@
+<!-- Light theme. Badge centered on the bookmark's outer right edge (x 912, y 600); viewBox centered on the artwork (x 288-1152, y 48-1152). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 0 1200 1200" width="1200" height="1200">
+  <defs>
+    <mask id="gap">
+      <rect x="120" width="1200" height="1200" fill="white"/>
+      <circle cx="912" cy="600" r="252" fill="black"/>
+    </mask>
+  </defs>
+  <!-- Bookmark body -->
+  <path d="M312,168 A96,96 0 0 1 408,72 H792 A96,96 0 0 1 888,168 V1128 L600,960 L312,1128 Z"
+        fill="#570404" stroke="#570404" stroke-width="48"
+        stroke-linejoin="round" mask="url(#gap)"/>
+  <!-- Circle -->
+  <circle cx="912" cy="600" r="240" fill="#212121"/>
+  <!-- Plus -->
+  <g stroke="#ffffff" stroke-width="48" stroke-linecap="round" fill="none">
+    <line x1="912" y1="482" x2="912" y2="718"/>
+    <line x1="794" y1="600" x2="1030" y2="600"/>
+  </g>
+</svg>

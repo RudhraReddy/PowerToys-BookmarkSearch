@@ -45,3 +45,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1
 ```
 
 Then run **Reload** in Command Palette.
+
+## Icons
+
+`BookmarkSearch/Assets/Icon.light.svg` and `Icon.dark.svg` are the Command Palette icons (light and dark theme). The package PNGs are generated from `Icon.light.svg`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\render-icons.ps1
+```
